@@ -1,0 +1,21 @@
+{
+    "name": "sergiosgc/rest",
+    "description": "RESTful webapp helper classes",
+    "keywords": ["rest"],
+    "homepage": "https://github.com/sergiosgc/rest",
+    "license": "MIT",
+    "version": "1.0",
+    "authors": [
+        {
+            "name": "Sérgio Carvalho",
+            "homepage": "https://github.com/sergiosgc"
+        }
+    ],
+    "require": {
+        "php": ">=7.0.0"
+    },
+    "autoload": {
+        "files": [ "sergiosgc/rest/Exception.php", "sergiosgc/rest/register.php" ],
+        "psr-4": {"sergiosgc\\rest\\": "sergiosgc/rest/"}
+    }
+}
