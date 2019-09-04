@@ -24,6 +24,33 @@ class REST {
         $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
         return $tvars;
     }
+    public function delete($class, $tvars = []) {
+        if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
+        $values = $_REQUEST;
+        $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
+        $keys = call_user_func([ $class, 'dbKeyFields']);
+        $keyValues = array_map(
+            function ($key) use ($values) { return array_key_exists($key, $values) ? $values[$key] : null; },
+            $keys);
+        $whereString = sprintf('(%s) = (%s)',
+            implode(', ', array_map(
+                function ($key) { return sprintf('"%s"', $key); },
+                $keys)),
+            implode(', ', array_map(
+                function ($key) { return '?'; },
+                $keys))
+        );
+        $dbReadArgs = array_merge(
+            [ $whereString ],
+            $keyValues);
+        $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
+        if (!is_object($tvars['result']['data'])) {
+            $tvars['result']['success'] = false;
+            throw new NotFoundException();
+        }
+        $tvars['result']['data']->dbDelete();
+        return $tvars;
+    }
     public function put($class, $tvars = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         if (!is_array($tvars)) $tvars = [];
