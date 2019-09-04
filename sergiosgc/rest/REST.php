@@ -22,6 +22,10 @@ class REST {
             [ $whereString ],
             $keyValues);
         $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
+        if (!is_object($tvars['result']['data'])) {
+            $tvars['result']['success'] = false;
+            throw new NotFoundException();
+        }
         return $tvars;
     }
     public function delete($class, $tvars = []) {
@@ -80,7 +84,10 @@ class REST {
                 $keyValues);
             $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
             if (is_null($tvars['result']['data']) && class_exists('\sergiosgc\router\Exception_HTTP_404')) throw new \sergiosgc\router\Exception_HTTP_404();
-            if (is_null($tvars['result']['data'])) $tvars['result']['success'] = false;
+            if (is_null($tvars['result']['data'])) {
+                $tvars['result']['success'] = false;
+                throw new NotFoundException();
+            }
             $tvars['result']['data']->setDescribedFields($values);
             $tvars['result']['data']->dbUpdate();
         }
