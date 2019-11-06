@@ -136,6 +136,14 @@ class REST {
             $filterArgs = [];
         }
 
+        $extraQueryArgs = func_get_args();
+        for ($i=0; $i<6;$i++) array_shift($extraQueryArgs);
+        if (count($extraQueryArgs)) {
+            $_query = array_shift($extraQueryArgs);
+            $filter = $filter ? sprintf('(%s) AND (%s)', $filter, $_query) : $_query;
+            $filterArgs = array_merge($filterArgs, $extraQueryArgs);
+        }
+
         if (array_key_exists($pageArgument, $request)) {
             $dbReadPagedArgs = array_merge( [ $sortColumn, $sortDir, $filter, $request[$pageArgument], $request[$pageSizeArgument] ], $filterArgs);
             list($result, $pageCount) = call_user_func_array( [ $class, 'dbReadPaged' ], $dbReadPagedArgs );
