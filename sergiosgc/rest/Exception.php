@@ -10,3 +10,14 @@ class NotFoundException extends Exception {
         parent::__construct($message, $code, $previous);
     }
 }
+
+class ValidationFailedException extends Exception {
+    public $fieldErrorMessages = [];
+    public $submittedData = [];
+    public function __construct($message = "", $code = 0, $previous = NULL, $fieldErrorMessages, $submittedData) {
+        if ($message == '') $message = 'Field validation failed';
+        $this->fieldErrorMessages = $fieldErrorMessages;
+        $this->submittedData = $submittedData;
+        parent::__construct($message, $code, $previous);
+    }
+}

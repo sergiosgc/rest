@@ -26,12 +26,9 @@ class REST {
         $dbReadArgs = array_merge(
             [ $whereString ],
             $keyValues);
-        $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
-        if (!is_object($tvars['result']['data'])) {
-            $tvars['result']['success'] = false;
-            throw new NotFoundException();
-        }
-        return $tvars;
+        $result = call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs );
+        if (!is_object($result)) throw new NotFoundException();
+        return $result;
     }
     public function delete($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
@@ -52,73 +49,60 @@ class REST {
         $dbReadArgs = array_merge(
             [ $whereString ],
             $keyValues);
-        $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
-        if (!is_object($tvars['result']['data'])) {
-            $tvars['result']['success'] = false;
+        $result = call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs );
+        if (!is_object($result)) {
+            if (class_exists('\sergiosgc\router\Exception_HTTP_404')) throw new \sergiosgc\router\Exception_HTTP_404();
             throw new NotFoundException();
         }
-        $tvars['result']['data']->dbDelete();
-        return $tvars;
+        $result->dbDelete();
+        return $result;
     }
     public function put($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
-        if ($validationErrors) {
-            $tvars['result'] = [ 'success' => false, 'data' => [
-                'validation-errors' => $validationErrors,
-                'form-data' => $values
-            ]];
-        } else {
-            $keys = call_user_func([ $class, 'dbKeyFields']);
-            $keyValues = array_map(
-                function ($key) use ($values) { return array_key_exists($key, $values) ? $values[$key] : null; },
-                $keys);
-            $whereString = sprintf('(%s) = (%s)',
-                implode(', ', array_map(
-                    function ($key) { return sprintf('"%s"', $key); },
-                    $keys)),
-                implode(', ', array_map(
-                    function ($key) { return '?'; },
-                    $keys))
-            );
-            $dbReadArgs = array_merge(
-                [ $whereString ],
-                $keyValues);
-            $tvars['result'] = [ 'success' => true, 'data' => call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs ) ];
-            if (is_null($tvars['result']['data']) && class_exists('\sergiosgc\router\Exception_HTTP_404')) throw new \sergiosgc\router\Exception_HTTP_404();
-            if (is_null($tvars['result']['data'])) {
-                $tvars['result']['success'] = false;
-                throw new NotFoundException();
-            }
-            $tvars['result']['data']->setDescribedFields($values);
-            $tvars['result']['data']->dbUpdate();
+        if ($validationErrors) throw new ValidationFailedException('Field validation failed', 0, null, $validationErrors, $values);
+        $keys = call_user_func([ $class, 'dbKeyFields']);
+        $keyValues = array_map(
+            function ($key) use ($values) { return array_key_exists($key, $values) ? $values[$key] : null; },
+            $keys);
+        $whereString = sprintf('(%s) = (%s)',
+            implode(', ', array_map(
+                function ($key) { return sprintf('"%s"', $key); },
+                $keys)),
+            implode(', ', array_map(
+                function ($key) { return '?'; },
+                $keys))
+        );
+        $dbReadArgs = array_merge(
+            [ $whereString ],
+            $keyValues);
+        $result = call_user_func_array( [ $class, 'dbRead' ], $dbReadArgs );
+        if (!is_object($result)) {
+            if (class_exists('\sergiosgc\router\Exception_HTTP_404')) throw new \sergiosgc\router\Exception_HTTP_404();
+            throw new NotFoundException();
         }
-        return $tvars;
+        $result->setDescribedFields($values);
+        $result->dbUpdate();
+        return $result;
     }
     public static function post($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        if (!is_array($tvars)) $tvars = [];
+        if (!is_array($tvars ?? null)) $tvars = [];
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         foreach (call_user_func([ $class, 'dbKeyFields']) as $key) if (array_key_exists($key, $values) && ($values[$key] === 0 || $values[$key] === "")) unset($values[$key]);
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
-        if ($validationErrors) {
-            $tvars['result'] = [ 'success' => false, 'data' => [
-                'validation-errors' => $validationErrors,
-                'form-data' => $values
-            ]];
-        } else {
-            $tvars['result'] = [ 'success' => true, 'data' => new $class ];
-            $tvars['result']['data']->setDescribedFields($values);
-            $tvars['result']['data']->dbCreate();
-        }
-        return $tvars;
+        if ($validationErrors) throw new ValidationFailedException('Field validation failed', 0, null, $validationErrors, $values);
+        $result = new $class;
+        $result->setDescribedFields($values);
+        $result->dbCreate();
+        return $result;
     }
     public function getCollection($class, $searchFields = null, $searchArgument = 'q', $sortArgument = 'sort', $pageArgument = 'page', $pageSizeArgument = 'pagesize') {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        if (!is_array($tvars)) $tvars = [];
+        if (!is_array($tvars ?? null)) $tvars = [];
         $request = $_REQUEST;
         if (is_array($searchFields) && !array_key_exists($searchArgument, $request)) $request[$searchArgument] = '';
         if (!array_key_exists($sortArgument, $request)) {
@@ -127,7 +111,7 @@ class REST {
         if (array_key_exists($pageArgument, $request) && !array_key_exists($pageSizeArgument, $request)) $request[$pageSizeArgument] = 20;
 
         if (0 === preg_match('_^[a-z]+,(?:ASC|DESC)$_', $request[$sortArgument])) throw new Exception('Invalid sort argument: ' . $request[$sortArgument]);
-        if (array_key_exists($pageArgumnet, $request)) $request[$pageArgument] = (int) $request[$pageArgument];
+        if (array_key_exists($pageArgument, $request)) $request[$pageArgument] = (int) $request[$pageArgument];
         if (array_key_exists($pageSizeArgument, $request)) $request[$pageSizeArgument] = (int) $request[$pageSizeArgument];
 
         list($sortColumn, $sortDir) = explode(',', $request[$sortArgument], 2);
@@ -156,12 +140,6 @@ class REST {
             $pageCount = 1;
             $result = \call_user_func_array( [ $class, 'dbReadAll' ], $dbReadAllArgs );
         }
-        return [ 'result' => [
-            'success' => true,
-            'data' => [
-                'pageCount' => $pageCount,
-                'collection' => $result
-            ]
-        ]];
+        return [ $pageCount, $result ];
     }
 }
