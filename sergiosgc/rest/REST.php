@@ -2,9 +2,14 @@
 namespace sergiosgc\rest;
 
 class REST {
-    public function get($class, $tvars = []) {
+    protected static function applyFieldmap(array $target, array $map) : array {
+        return \sergiosgc\ArrayAdapter::from($target)->reduceAssociative(function ($value, $key) use ($map) {
+            return [ isset($map[$key]) ? $map[$key] : $key, $value ];
+        })->toArray();
+    }
+    public function get($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        $values = $_REQUEST;
+        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         $keys = call_user_func([ $class, 'dbKeyFields']);
         $keyValues = array_map(
@@ -28,9 +33,9 @@ class REST {
         }
         return $tvars;
     }
-    public function delete($class, $tvars = []) {
+    public function delete($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        $values = $_REQUEST;
+        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         $keys = call_user_func([ $class, 'dbKeyFields']);
         $keyValues = array_map(
@@ -55,10 +60,9 @@ class REST {
         $tvars['result']['data']->dbDelete();
         return $tvars;
     }
-    public function put($class, $tvars = []) {
+    public function put($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        if (!is_array($tvars)) $tvars = [];
-        $values = $_REQUEST;
+        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
         if ($validationErrors) {
@@ -93,10 +97,10 @@ class REST {
         }
         return $tvars;
     }
-    public function post($class, $tvars = []) {
+    public static function post($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         if (!is_array($tvars)) $tvars = [];
-        $values = $_REQUEST;
+        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
         foreach (call_user_func([ $class, 'dbKeyFields']) as $key) if (array_key_exists($key, $values) && ($values[$key] === 0 || $values[$key] === "")) unset($values[$key]);
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
