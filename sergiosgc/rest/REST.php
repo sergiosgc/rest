@@ -57,7 +57,7 @@ class REST {
         $result->dbDelete();
         return $result;
     }
-    public function put($class, $requestFieldMap = []) {
+    public function put($class, $requestFieldMap = [], $changeCallback = null) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
@@ -83,7 +83,8 @@ class REST {
             if (class_exists('\sergiosgc\router\Exception_HTTP_404')) throw new \sergiosgc\router\Exception_HTTP_404();
             throw new NotFoundException();
         }
-        $result->setDescribedFields($values);
+        $changes = $result->setDescribedFields($values);
+        if (!is_null($changeCallback)) call_user_func($changeCallback, $changes);
         $result->dbUpdate();
         return $result;
     }
