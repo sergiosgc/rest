@@ -7,7 +7,7 @@ class REST {
             return [ isset($map[$key]) ? $map[$key] : $key, $value ];
         })->toArray();
     }
-    public function get($class, $requestFieldMap = []) {
+    public static function get($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
@@ -30,7 +30,7 @@ class REST {
         if (!is_object($result)) throw new NotFoundException();
         return $result;
     }
-    public function delete($class, $requestFieldMap = []) {
+    public static function delete($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
@@ -57,7 +57,7 @@ class REST {
         $result->dbDelete();
         return $result;
     }
-    public function put($class, $requestFieldMap = [], $changeCallback = null) {
+    public static function put($class, $requestFieldMap = [], $changeCallback = null) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
         $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
@@ -101,7 +101,7 @@ class REST {
         $result->dbCreate();
         return $result;
     }
-    public function getCollection($class, $searchFields = null, $searchArgument = 'q', $sortArgument = 'sort', $pageArgument = 'page', $pageSizeArgument = 'pagesize') {
+    public static function getCollection($class, $searchFields = null, $searchArgument = 'q', $sortArgument = 'sort', $pageArgument = 'page', $pageSizeArgument = 'pagesize') {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         if (!is_array($tvars ?? null)) $tvars = [];
         $request = $_REQUEST;
