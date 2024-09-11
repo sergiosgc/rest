@@ -2,6 +2,12 @@
 namespace sergiosgc\rest;
 
 class REST {
+    protected static function filterOutUIWidgetNoneFields($descriptions, $values) {
+        foreach($descriptions as $key => $description) {
+            if (isset($description['ui:widget']) && $description['ui:widget'] == 'none') unset($values[$key]);
+        }
+        return $values;
+    }
     protected static function applyFieldmap(array $target, array $map) : array {
         return \sergiosgc\ArrayAdapter::from($target)->reduceAssociative(function ($value, $key) use ($map) {
             return [ isset($map[$key]) ? $map[$key] : $key, $value ];
@@ -59,8 +65,11 @@ class REST {
     }
     public static function put($class, $requestFieldMap = [], $changeCallback = null) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
-        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
-        $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
+        $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), 
+            static::filterOutUIWidgetNoneFields($class::describeFields(),
+                static::applyFieldmap($_REQUEST, $requestFieldMap)
+            )
+        );
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
         if ($validationErrors) throw new ValidationFailedException('Field validation failed', 0, null, $validationErrors, $values);
         $keys = call_user_func([ $class, 'dbKeyFields']);
@@ -91,8 +100,11 @@ class REST {
     public static function post($class, $requestFieldMap = []) {
         if (!isset(class_implements($class)['sergiosgc\crud\Describable'])) throw new Exception("$class must implement interface sergiosgc\crud\Describable");
         if (!is_array($tvars ?? null)) $tvars = [];
-        $values = static::applyFieldmap($_REQUEST, $requestFieldMap);
-        $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), $values);
+        $values = \sergiosgc\crud\Normalizer::normalizeValues($class::describeFields(), 
+            static::filterOutUIWidgetNoneFields($class::describeFields(),
+                static::applyFieldmap($_REQUEST, $requestFieldMap)
+            )
+        );
         foreach (call_user_func([ $class, 'dbKeyFields']) as $key) if (array_key_exists($key, $values) && ($values[$key] === 0 || $values[$key] === "")) unset($values[$key]);
         $validationErrors = \sergiosgc\crud\Validator::validateValues($class::describeFields(), $values, $class);
         if ($validationErrors) throw new ValidationFailedException('Field validation failed', 0, null, $validationErrors, $values);
